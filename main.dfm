@@ -1,10 +1,9 @@
 object Form1: TForm1
   Left = 199
   Top = 117
-  BorderStyle = bsSingle
   Caption = 'Bludi'#353't'#283
-  ClientHeight = 329
-  ClientWidth = 535
+  ClientHeight = 319
+  ClientWidth = 525
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,20 +17,22 @@ object Form1: TForm1
   OnMouseDown = FormMouseDown
   OnMouseMove = FormMouseMove
   OnPaint = FormPaint
+  OnResize = FormPaint
   OnShow = FormShow
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 310
-    Width = 535
+    Top = 300
+    Width = 525
     Height = 19
     Panels = <
       item
         Text = 'F2 proj'#237't, F4 generovat, F5 um'#237'stit Minotaura jinam'
         Width = 50
       end>
-    SimplePanel = False
+    ExplicitTop = 310
+    ExplicitWidth = 535
   end
   object MainMenu1: TMainMenu
     Left = 16
@@ -113,7 +114,6 @@ object Form1: TForm1
     end
   end
   object barvy: TColorDialog
-    Ctl3D = True
     Left = 144
     Top = 16
   end
