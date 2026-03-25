@@ -334,6 +334,7 @@
         { code: 3, dx: -1, dy: 0 },
         { code: 4, dx: 0, dy: -1 }
       ];
+      const DIR_BY_CODE = Object.fromEntries(DIRS.map((dir) => [dir.code, dir]));
 
       const elements = {
         canvas: document.getElementById("mazeCanvas"),
@@ -560,23 +561,36 @@
           }
         }
 
-        function goAndCrush(x, y) {
-          if (x < 1 || x > state.dimension || y < 1 || y > state.dimension || state.visited[x][y]) {
-            return false;
+        state.visited[1][1] = true;
+        const stack = [{ x: 1, y: 1, order: randomPermutation(), nextIndex: 0 }];
+        while (stack.length > 0) {
+          const frame = stack[stack.length - 1];
+          if (frame.nextIndex >= frame.order.length) {
+            stack.pop();
+            continue;
           }
-          state.visited[x][y] = true;
-          for (const direction of randomPermutation()) {
-            const dir = DIRS.find((item) => item.code === direction);
-            const nextX = x + dir.dx;
-            const nextY = y + dir.dy;
-            if (goAndCrush(nextX, nextY)) {
-              openWall(x, y, direction);
-            }
+
+          const direction = frame.order[frame.nextIndex];
+          frame.nextIndex += 1;
+          const dir = DIR_BY_CODE[direction];
+          const nextX = frame.x + dir.dx;
+          const nextY = frame.y + dir.dy;
+
+          if (
+            nextX < 1 ||
+            nextX > state.dimension ||
+            nextY < 1 ||
+            nextY > state.dimension ||
+            state.visited[nextX][nextY]
+          ) {
+            continue;
           }
-          return true;
+
+          state.visited[nextX][nextY] = true;
+          openWall(frame.x, frame.y, direction);
+          stack.push({ x: nextX, y: nextY, order: randomPermutation(), nextIndex: 0 });
         }
 
-        goAndCrush(1, 1);
         clearGrid(state.visited, false);
         chooseRandomMinotaur();
         clearPath();
@@ -601,32 +615,47 @@
       function buildSolvePath() {
         clearGrid(state.visited, false);
         const steps = [];
-
-        function dfs(x, y) {
-          state.visited[x][y] = true;
-          steps.push({ x, y, color: "tam" });
-          if (x === state.minotaur.x && y === state.minotaur.y) {
-            return true;
-          }
-          for (const direction of randomPermutation()) {
-            if (!canMove(x, y, direction)) {
-              continue;
-            }
-            const dir = DIRS.find((item) => item.code === direction);
-            const nextX = x + dir.dx;
-            const nextY = y + dir.dy;
-            if (state.visited[nextX][nextY]) {
-              continue;
-            }
-            if (dfs(nextX, nextY)) {
-              return true;
-            }
-            steps.push({ x, y, color: "zpet" });
-          }
-          return false;
+        state.visited[1][1] = true;
+        steps.push({ x: 1, y: 1, color: "tam" });
+        if (state.minotaur.x === 1 && state.minotaur.y === 1) {
+          return steps;
         }
 
-        dfs(1, 1);
+        const stack = [{ x: 1, y: 1, order: randomPermutation(), nextIndex: 0 }];
+        while (stack.length > 0) {
+          const frame = stack[stack.length - 1];
+
+          if (frame.nextIndex >= frame.order.length) {
+            stack.pop();
+            if (stack.length > 0) {
+              const parent = stack[stack.length - 1];
+              steps.push({ x: parent.x, y: parent.y, color: "zpet" });
+            }
+            continue;
+          }
+
+          const direction = frame.order[frame.nextIndex];
+          frame.nextIndex += 1;
+          if (!canMove(frame.x, frame.y, direction)) {
+            continue;
+          }
+
+          const dir = DIR_BY_CODE[direction];
+          const nextX = frame.x + dir.dx;
+          const nextY = frame.y + dir.dy;
+          if (state.visited[nextX][nextY]) {
+            continue;
+          }
+
+          state.visited[nextX][nextY] = true;
+          steps.push({ x: nextX, y: nextY, color: "tam" });
+          if (nextX === state.minotaur.x && nextY === state.minotaur.y) {
+            return steps;
+          }
+
+          stack.push({ x: nextX, y: nextY, order: randomPermutation(), nextIndex: 0 });
+        }
+
         return steps;
       }
 
@@ -1034,6 +1063,7 @@
       window.addEventListener("resize", resizeCanvas);
 
       async function init() {
+        elements.dimensionInput.max = String(MAX_SIZE);
         syncInputsFromState();
         resizeCanvas();
         try {
