@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bludiste Canvas SPA</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #efe8db;
+      --panel: rgba(252, 248, 241, 0.92);
+      --panel-strong: #fffaf1;
+      --ink: #1f1a16;
+      --muted: #61554b;
+      --accent: #b35c2e;
+      --accent-deep: #7b3514;
+      --line: rgba(76, 57, 42, 0.18);
+      --shadow: 0 18px 38px rgba(53, 32, 19, 0.14);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Gill Sans", "Avenir Next", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(210, 132, 72, 0.26), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(117, 141, 104, 0.2), transparent 24%),
+        linear-gradient(160deg, #f8f1e4 0%, #ece3d2 42%, #e6dccb 100%);
+    }
+
+    .page {
+      width: min(1200px, calc(100vw - 32px));
+      margin: 24px auto;
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel,
+    .board {
+      background: var(--panel);
+      border: 1px solid rgba(97, 85, 75, 0.16);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .panel {
+      padding: 20px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .board {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 2.6rem);
+      line-height: 1.05;
+    }
+
+    h2 {
+      font-size: 1rem;
+      color: var(--accent-deep);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .section {
+      display: grid;
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row.columns-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .row.columns-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+
+    input,
+    button {
+      font: inherit;
+    }
+
+    input[type="number"],
+    input[type="range"] {
+      width: 100%;
+    }
+
+    input[type="number"] {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(97, 85, 75, 0.26);
+      background: var(--panel-strong);
+      color: var(--ink);
+    }
+
+    input[type="color"] {
+      width: 100%;
+      min-height: 42px;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(97, 85, 75, 0.26);
+      background: var(--panel-strong);
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 14px;
+      cursor: pointer;
+      color: #fff8ef;
+      background: linear-gradient(135deg, var(--accent), #8a431d);
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+      transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
+    }
+
+    button.secondary {
+      color: var(--ink);
+      background: linear-gradient(135deg, #f6eee2, #e8dcc8);
+      box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    button:disabled {
+      opacity: 0.48;
+      cursor: default;
+    }
+
+    button:not(:disabled):hover {
+      transform: translateY(-1px);
+      filter: saturate(1.08);
+    }
+
+    .board-shell {
+      width: 100%;
+      aspect-ratio: 1;
+      position: relative;
+      overflow: hidden;
+      border-radius: calc(var(--radius) - 4px);
+      background:
+        linear-gradient(180deg, rgba(255, 250, 241, 0.94), rgba(244, 235, 222, 0.96)),
+        repeating-linear-gradient(
+          45deg,
+          rgba(134, 97, 67, 0.05) 0,
+          rgba(134, 97, 67, 0.05) 12px,
+          rgba(255, 255, 255, 0.12) 12px,
+          rgba(255, 255, 255, 0.12) 24px
+        );
+      border: 1px solid rgba(97, 85, 75, 0.16);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .status {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 249, 238, 0.9);
+      border: 1px solid rgba(97, 85, 75, 0.16);
+      color: var(--muted);
+      font-size: 0.94rem;
+      line-height: 1.4;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      flex: none;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <aside class="panel">
+      <div class="row">
+        <h1>Bludiste</h1>
+        <p>Canvas single-page port of the Delphi maze program. It keeps the same maze generation, editable walls, randomized depth-first Minotaur search, and compatible <code>.dat</code> file format.</p>
+      </div>
+
+      <section class="section">
+        <h2>Maze</h2>
+        <div class="row columns-2">
+          <label>
+            Dimension
+            <input id="dimensionInput" type="number" min="4" max="500" value="20">
+          </label>
+          <label>
+            Step Delay
+            <input id="speedInput" type="range" min="10" max="250" step="5" value="30">
+          </label>
+        </div>
+        <div class="row columns-2">
+          <button id="generateBtn">Generate</button>
+          <button id="solveBtn">Solve</button>
+        </div>
+        <div class="row columns-3">
+          <button id="stopBtn" class="secondary" disabled>Stop</button>
+          <button id="moveMinotaurBtn" class="secondary">Move Minotaur</button>
+          <button id="emptyBtn" class="secondary">Empty Maze</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Colors</h2>
+        <div class="row columns-2">
+          <label>
+            Walls
+            <input id="wallColorInput" type="color" value="#ff0000">
+          </label>
+          <label>
+            Forward Path
+            <input id="forwardColorInput" type="color" value="#0000ff">
+          </label>
+        </div>
+        <div class="row columns-2">
+          <label>
+            Backtrack Path
+            <input id="backtrackColorInput" type="color" value="#008000">
+          </label>
+          <label>
+            Minotaur Outline
+            <input id="minotaurOutlineInput" type="color" value="#800080">
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Minotaur Fill
+            <input id="minotaurFillInput" type="color" value="#800080">
+          </label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Files</h2>
+        <div class="row columns-3">
+          <button id="loadBundledBtn" class="secondary">Load lab.dat</button>
+          <button id="loadBtn" class="secondary">Open .dat</button>
+          <button id="saveBtn" class="secondary">Save .dat</button>
+        </div>
+        <input id="fileInput" class="hidden" type="file" accept=".dat,application/octet-stream">
+      </section>
+    </aside>
+
+    <section class="board">
+      <div class="board-shell">
+        <canvas id="mazeCanvas"></canvas>
+      </div>
+      <div id="statusText" class="status">Left click or drag near a wall to toggle it. Right click a cell to place the Minotaur. Search always starts from cell 1,1.</div>
+      <div class="legend">
+        <span><i class="swatch" id="wallSwatch"></i>Walls</span>
+        <span><i class="swatch" id="forwardSwatch"></i>Forward steps</span>
+        <span><i class="swatch" id="backtrackSwatch"></i>Backtracking</span>
+        <span><i class="swatch" id="minotaurSwatch"></i>Minotaur</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const MAX_SIZE = 500;
+      const FILE_SIZE = 4 + 20 + (MAX_SIZE * MAX_SIZE) + (MAX_SIZE * MAX_SIZE);
+      const DIRS = [
+        { code: 1, dx: 1, dy: 0 },
+        { code: 2, dx: 0, dy: 1 },
+        { code: 3, dx: -1, dy: 0 },
+        { code: 4, dx: 0, dy: -1 }
+      ];
+
+      const elements = {
+        canvas: document.getElementById("mazeCanvas"),
+        dimensionInput: document.getElementById("dimensionInput"),
+        speedInput: document.getElementById("speedInput"),
+        generateBtn: document.getElementById("generateBtn"),
+        solveBtn: document.getElementById("solveBtn"),
+        stopBtn: document.getElementById("stopBtn"),
+        moveMinotaurBtn: document.getElementById("moveMinotaurBtn"),
+        emptyBtn: document.getElementById("emptyBtn"),
+        loadBundledBtn: document.getElementById("loadBundledBtn"),
+        loadBtn: document.getElementById("loadBtn"),
+        saveBtn: document.getElementById("saveBtn"),
+        fileInput: document.getElementById("fileInput"),
+        statusText: document.getElementById("statusText"),
+        wallColorInput: document.getElementById("wallColorInput"),
+        forwardColorInput: document.getElementById("forwardColorInput"),
+        backtrackColorInput: document.getElementById("backtrackColorInput"),
+        minotaurOutlineInput: document.getElementById("minotaurOutlineInput"),
+        minotaurFillInput: document.getElementById("minotaurFillInput"),
+        wallSwatch: document.getElementById("wallSwatch"),
+        forwardSwatch: document.getElementById("forwardSwatch"),
+        backtrackSwatch: document.getElementById("backtrackSwatch"),
+        minotaurSwatch: document.getElementById("minotaurSwatch")
+      };
+
+      const ctx = elements.canvas.getContext("2d");
+      const state = {
+        dimension: 20,
+        speedMs: 30,
+        colors: {
+          tam: "#0000ff",
+          zpet: "#008000",
+          zdi: "#ff0000",
+          mino1: "#800080",
+          mino2: "#800080"
+        },
+        horiz: createGrid(false),
+        vert: createGrid(false),
+        visited: createGrid(false),
+        minotaur: { x: 1, y: 1 },
+        pathSteps: [],
+        pathIndex: 0,
+        solveState: "idle",
+        timerId: null,
+        editing: true,
+        dragToggled: new Set(),
+        dragButton: null,
+        canvasCssWidth: 0,
+        canvasCssHeight: 0
+      };
+
+      function createGrid(fillValue) {
+        return Array.from({ length: MAX_SIZE + 1 }, () => Array(MAX_SIZE + 1).fill(fillValue));
+      }
+
+      function clearGrid(grid, fillValue) {
+        for (let x = 0; x <= MAX_SIZE; x += 1) {
+          grid[x].fill(fillValue);
+        }
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function randomInt(max) {
+        return Math.floor(Math.random() * max);
+      }
+
+      function randomPermutation() {
+        const result = [1, 2, 3, 4];
+        for (let i = result.length - 1; i > 0; i -= 1) {
+          const j = randomInt(i + 1);
+          [result[i], result[j]] = [result[j], result[i]];
+        }
+        return result;
+      }
+
+      function updateStatus(message) {
+        elements.statusText.textContent = message;
+      }
+
+      function syncInputsFromState() {
+        elements.dimensionInput.value = String(state.dimension);
+        elements.speedInput.value = String(state.speedMs);
+        elements.wallColorInput.value = state.colors.zdi;
+        elements.forwardColorInput.value = state.colors.tam;
+        elements.backtrackColorInput.value = state.colors.zpet;
+        elements.minotaurOutlineInput.value = state.colors.mino1;
+        elements.minotaurFillInput.value = state.colors.mino2;
+        elements.wallSwatch.style.background = state.colors.zdi;
+        elements.forwardSwatch.style.background = state.colors.tam;
+        elements.backtrackSwatch.style.background = state.colors.zpet;
+        elements.minotaurSwatch.style.background =
+          `linear-gradient(135deg, ${state.colors.mino1} 0%, ${state.colors.mino1} 48%, ${state.colors.mino2} 48%, ${state.colors.mino2} 100%)`;
+      }
+
+      function resizeCanvas() {
+        const rect = elements.canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        state.canvasCssWidth = rect.width;
+        state.canvasCssHeight = rect.height;
+        elements.canvas.width = Math.max(1, Math.round(rect.width * dpr));
+        elements.canvas.height = Math.max(1, Math.round(rect.height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+      }
+
+      function getCellMetrics() {
+        return {
+          w: state.canvasCssWidth / state.dimension,
+          h: state.canvasCssHeight / state.dimension
+        };
+      }
+
+      function cellCenter(x, y) {
+        const { w, h } = getCellMetrics();
+        return {
+          x: (x - 0.5) * w,
+          y: (y - 0.5) * h
+        };
+      }
+
+      function canMove(x, y, direction) {
+        switch (direction) {
+          case 1:
+            return x < state.dimension && !state.vert[x][y];
+          case 2:
+            return y < state.dimension && !state.horiz[x][y];
+          case 3:
+            return x > 1 && !state.vert[x - 1][y];
+          case 4:
+            return y > 1 && !state.horiz[x][y - 1];
+          default:
+            return false;
+        }
+      }
+
+      function openWall(x, y, direction) {
+        switch (direction) {
+          case 1:
+            if (x < state.dimension) {
+              state.vert[x][y] = false;
+            }
+            break;
+          case 2:
+            if (y < state.dimension) {
+              state.horiz[x][y] = false;
+            }
+            break;
+          case 3:
+            if (x > 1) {
+              state.vert[x - 1][y] = false;
+            }
+            break;
+          case 4:
+            if (y > 1) {
+              state.horiz[x][y - 1] = false;
+            }
+            break;
+          default:
+            break;
+        }
+      }
+
+      function chooseRandomMinotaur() {
+        state.minotaur = {
+          x: randomInt(state.dimension) + 1,
+          y: randomInt(state.dimension) + 1
+        };
+      }
+
+      function clearPath() {
+        stopTimer();
+        state.pathSteps = [];
+        state.pathIndex = 0;
+        state.solveState = "idle";
+        state.editing = true;
+        updateSolveButtons();
+      }
+
+      function updateSolveButtons() {
+        elements.stopBtn.disabled = state.solveState === "idle";
+        if (state.solveState === "running") {
+          elements.solveBtn.textContent = "Pause";
+        } else if (state.solveState === "paused") {
+          elements.solveBtn.textContent = "Continue";
+        } else {
+          elements.solveBtn.textContent = "Solve";
+        }
+      }
+
+      function stopTimer() {
+        if (state.timerId !== null) {
+          window.clearInterval(state.timerId);
+          state.timerId = null;
+        }
+      }
+
+      function setColorFromInput(key, value) {
+        state.colors[key] = value;
+        syncInputsFromState();
+        draw();
+      }
+
+      function prepareFreshMaze() {
+        clearGrid(state.horiz, false);
+        clearGrid(state.vert, false);
+        clearGrid(state.visited, false);
+      }
+
+      function generateMaze() {
+        state.dimension = clamp(Number(elements.dimensionInput.value) || state.dimension, 4, MAX_SIZE);
+        prepareFreshMaze();
+        for (let x = 1; x <= state.dimension; x += 1) {
+          for (let y = 1; y <= state.dimension; y += 1) {
+            if (y < state.dimension) {
+              state.horiz[x][y] = randomInt(10) > 0;
+            }
+            if (x < state.dimension) {
+              state.vert[x][y] = randomInt(10) > 0;
+            }
+          }
+        }
+
+        function goAndCrush(x, y) {
+          if (x < 1 || x > state.dimension || y < 1 || y > state.dimension || state.visited[x][y]) {
+            return false;
+          }
+          state.visited[x][y] = true;
+          for (const direction of randomPermutation()) {
+            const dir = DIRS.find((item) => item.code === direction);
+            const nextX = x + dir.dx;
+            const nextY = y + dir.dy;
+            if (goAndCrush(nextX, nextY)) {
+              openWall(x, y, direction);
+            }
+          }
+          return true;
+        }
+
+        goAndCrush(1, 1);
+        clearGrid(state.visited, false);
+        chooseRandomMinotaur();
+        clearPath();
+        syncInputsFromState();
+        updateStatus("Generated a new maze. Left-drag edits walls, right-click moves the Minotaur.");
+        draw();
+      }
+
+      function emptyMaze() {
+        for (let x = 1; x <= MAX_SIZE; x += 1) {
+          for (let y = 1; y <= MAX_SIZE; y += 1) {
+            state.horiz[x][y] = false;
+            state.vert[x][y] = false;
+          }
+        }
+        clearGrid(state.visited, false);
+        clearPath();
+        updateStatus("Maze walls cleared.");
+        draw();
+      }
+
+      function buildSolvePath() {
+        clearGrid(state.visited, false);
+        const steps = [];
+
+        function dfs(x, y) {
+          state.visited[x][y] = true;
+          steps.push({ x, y, color: "tam" });
+          if (x === state.minotaur.x && y === state.minotaur.y) {
+            return true;
+          }
+          for (const direction of randomPermutation()) {
+            if (!canMove(x, y, direction)) {
+              continue;
+            }
+            const dir = DIRS.find((item) => item.code === direction);
+            const nextX = x + dir.dx;
+            const nextY = y + dir.dy;
+            if (state.visited[nextX][nextY]) {
+              continue;
+            }
+            if (dfs(nextX, nextY)) {
+              return true;
+            }
+            steps.push({ x, y, color: "zpet" });
+          }
+          return false;
+        }
+
+        dfs(1, 1);
+        return steps;
+      }
+
+      function startSolve() {
+        state.pathSteps = buildSolvePath();
+        state.pathIndex = 0;
+        state.solveState = "running";
+        state.editing = false;
+        updateSolveButtons();
+        updateStatus("Searching for the Minotaur with the original randomized depth-first walk.");
+        stopTimer();
+        state.timerId = window.setInterval(() => {
+          if (state.pathIndex < state.pathSteps.length) {
+            state.pathIndex += 1;
+            draw();
+            return;
+          }
+          finishSolve(false);
+        }, state.speedMs);
+        draw();
+      }
+
+      function pauseSolve() {
+        stopTimer();
+        state.solveState = "paused";
+        state.editing = false;
+        updateSolveButtons();
+        updateStatus("Search paused.");
+      }
+
+      function resumeSolve() {
+        state.solveState = "running";
+        state.editing = false;
+        updateSolveButtons();
+        updateStatus("Search resumed.");
+        stopTimer();
+        state.timerId = window.setInterval(() => {
+          if (state.pathIndex < state.pathSteps.length) {
+            state.pathIndex += 1;
+            draw();
+            return;
+          }
+          finishSolve(false);
+        }, state.speedMs);
+      }
+
+      function finishSolve(stoppedEarly) {
+        stopTimer();
+        if (stoppedEarly) {
+          state.pathIndex = state.pathSteps.length;
+        }
+        state.solveState = "idle";
+        state.editing = true;
+        updateSolveButtons();
+        updateStatus(stoppedEarly ? "Search stopped. Full recorded path remains visible." : "Search completed.");
+        draw();
+      }
+
+      function toggleSolve() {
+        if (state.solveState === "running") {
+          pauseSolve();
+          return;
+        }
+        if (state.solveState === "paused") {
+          resumeSolve();
+          return;
+        }
+        startSolve();
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, state.canvasCssWidth, state.canvasCssHeight);
+
+        const { w, h } = getCellMetrics();
+        ctx.fillStyle = "#fffaf2";
+        ctx.fillRect(0, 0, state.canvasCssWidth, state.canvasCssHeight);
+
+        ctx.strokeStyle = state.colors.zdi;
+        ctx.lineWidth = 1;
+        for (let x = 1; x < state.dimension; x += 1) {
+          for (let y = 1; y <= state.dimension; y += 1) {
+            if (state.vert[x][y]) {
+              ctx.beginPath();
+              ctx.moveTo(x * w, (y - 1) * h);
+              ctx.lineTo(x * w, y * h);
+              ctx.stroke();
+            }
+            if (state.horiz[y][x]) {
+              ctx.beginPath();
+              ctx.moveTo((y - 1) * w, x * h);
+              ctx.lineTo(y * w, x * h);
+              ctx.stroke();
+            }
+          }
+        }
+
+        ctx.strokeStyle = state.colors.zdi;
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(0, 0, state.dimension * w, state.dimension * h);
+
+        const radius = Math.min(w, h) * 0.34;
+        const minotaurCenter = cellCenter(state.minotaur.x, state.minotaur.y);
+        ctx.beginPath();
+        ctx.fillStyle = state.colors.mino2;
+        ctx.strokeStyle = state.colors.mino1;
+        ctx.lineWidth = 2;
+        ctx.arc(minotaurCenter.x, minotaurCenter.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        if (state.pathIndex > 0) {
+          const visibleSteps = state.pathSteps.slice(0, state.pathIndex);
+          if (visibleSteps.length > 0) {
+            const first = cellCenter(visibleSteps[0].x, visibleSteps[0].y);
+            ctx.lineWidth = 3;
+            ctx.lineJoin = "round";
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(first.x, first.y);
+            for (let i = 1; i < visibleSteps.length; i += 1) {
+              const previous = visibleSteps[i - 1];
+              const current = visibleSteps[i];
+              const currentPoint = cellCenter(current.x, current.y);
+              ctx.strokeStyle = state.colors[current.color];
+              ctx.lineTo(currentPoint.x, currentPoint.y);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(currentPoint.x, currentPoint.y);
+              if (previous.x === current.x && previous.y === current.y) {
+                ctx.lineTo(currentPoint.x, currentPoint.y);
+              }
+            }
+          }
+        }
+      }
+
+      function delphiColorToCss(value) {
+        const normalized = value >>> 0;
+        const r = normalized & 0xff;
+        const g = (normalized >>> 8) & 0xff;
+        const b = (normalized >>> 16) & 0xff;
+        return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+      }
+
+      function cssColorToDelphi(value) {
+        const raw = value.replace("#", "");
+        const normalized = raw.length === 3
+          ? raw.split("").map((part) => part + part).join("")
+          : raw;
+        const r = parseInt(normalized.slice(0, 2), 16);
+        const g = parseInt(normalized.slice(2, 4), 16);
+        const b = parseInt(normalized.slice(4, 6), 16);
+        return (r | (g << 8) | (b << 16)) >>> 0;
+      }
+
+      function importFromBuffer(buffer, sourceLabel) {
+        if (buffer.byteLength < FILE_SIZE) {
+          throw new Error("Unexpected file size.");
+        }
+
+        const view = new DataView(buffer);
+        const dimension = clamp(view.getInt32(0, true), 4, MAX_SIZE);
+        state.dimension = dimension;
+        let offset = 4;
+        state.colors.tam = delphiColorToCss(view.getInt32(offset, true));
+        offset += 4;
+        state.colors.zpet = delphiColorToCss(view.getInt32(offset, true));
+        offset += 4;
+        state.colors.zdi = delphiColorToCss(view.getInt32(offset, true));
+        offset += 4;
+        state.colors.mino1 = delphiColorToCss(view.getInt32(offset, true));
+        offset += 4;
+        state.colors.mino2 = delphiColorToCss(view.getInt32(offset, true));
+        offset += 4;
+
+        clearGrid(state.horiz, false);
+        clearGrid(state.vert, false);
+        clearGrid(state.visited, false);
+
+        for (let x = 1; x <= MAX_SIZE; x += 1) {
+          for (let y = 1; y <= MAX_SIZE; y += 1) {
+            state.horiz[x][y] = view.getUint8(offset) !== 0;
+            offset += 1;
+          }
+        }
+
+        for (let x = 1; x <= MAX_SIZE; x += 1) {
+          for (let y = 1; y <= MAX_SIZE; y += 1) {
+            state.vert[x][y] = view.getUint8(offset) !== 0;
+            offset += 1;
+          }
+        }
+
+        chooseRandomMinotaur();
+        clearPath();
+        syncInputsFromState();
+        updateStatus(`Loaded maze from ${sourceLabel}. The Minotaur position is randomized, matching the Delphi program.`);
+        draw();
+      }
+
+      function exportToBuffer() {
+        const buffer = new ArrayBuffer(FILE_SIZE);
+        const view = new DataView(buffer);
+        view.setInt32(0, state.dimension, true);
+        let offset = 4;
+        view.setUint32(offset, cssColorToDelphi(state.colors.tam), true);
+        offset += 4;
+        view.setUint32(offset, cssColorToDelphi(state.colors.zpet), true);
+        offset += 4;
+        view.setUint32(offset, cssColorToDelphi(state.colors.zdi), true);
+        offset += 4;
+        view.setUint32(offset, cssColorToDelphi(state.colors.mino1), true);
+        offset += 4;
+        view.setUint32(offset, cssColorToDelphi(state.colors.mino2), true);
+        offset += 4;
+
+        for (let x = 1; x <= MAX_SIZE; x += 1) {
+          for (let y = 1; y <= MAX_SIZE; y += 1) {
+            view.setUint8(offset, state.horiz[x][y] ? 1 : 0);
+            offset += 1;
+          }
+        }
+
+        for (let x = 1; x <= MAX_SIZE; x += 1) {
+          for (let y = 1; y <= MAX_SIZE; y += 1) {
+            view.setUint8(offset, state.vert[x][y] ? 1 : 0);
+            offset += 1;
+          }
+        }
+
+        return buffer;
+      }
+
+      function saveMaze() {
+        const blob = new Blob([exportToBuffer()], { type: "application/octet-stream" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "bludiste.dat";
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+        updateStatus("Saved maze as a Delphi-compatible .dat file.");
+      }
+
+      async function loadBundledMaze() {
+        const response = await fetch("lab.dat", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const buffer = await response.arrayBuffer();
+        importFromBuffer(buffer, "lab.dat");
+      }
+
+      function wallToggleKey(kind, x, y) {
+        return `${kind}:${x}:${y}`;
+      }
+
+      function toggleWall(kind, x, y) {
+        if (kind === "vert") {
+          if (x < 1 || x >= state.dimension || y < 1 || y > state.dimension) {
+            return;
+          }
+          state.vert[x][y] = !state.vert[x][y];
+        } else {
+          if (x < 1 || x > state.dimension || y < 1 || y >= state.dimension) {
+            return;
+          }
+          state.horiz[x][y] = !state.horiz[x][y];
+        }
+        clearPath();
+        draw();
+      }
+
+      function handleWallGesture(event, strictness) {
+        if (!state.editing) {
+          return;
+        }
+        const rect = elements.canvas.getBoundingClientRect();
+        const px = clamp(event.clientX - rect.left, 0, state.canvasCssWidth);
+        const py = clamp(event.clientY - rect.top, 0, state.canvasCssHeight);
+        const { w, h } = getCellMetrics();
+        const col = Math.min(state.dimension - 1, Math.floor(px / w));
+        const row = Math.min(state.dimension - 1, Math.floor(py / h));
+        const offsetX = px - (col * w);
+        const offsetY = py - (row * h);
+        const thresholdX = w / strictness;
+        const thresholdY = h / strictness;
+
+        const candidates = [];
+        if (offsetX < thresholdX && col > 0) {
+          candidates.push({ kind: "vert", x: col, y: row + 1 });
+        }
+        if (offsetX > w - thresholdX && col < state.dimension - 1) {
+          candidates.push({ kind: "vert", x: col + 1, y: row + 1 });
+        }
+        if (offsetY < thresholdY && row > 0) {
+          candidates.push({ kind: "horiz", x: col + 1, y: row });
+        }
+        if (offsetY > h - thresholdY && row < state.dimension - 1) {
+          candidates.push({ kind: "horiz", x: col + 1, y: row + 1 });
+        }
+
+        for (const candidate of candidates) {
+          const key = wallToggleKey(candidate.kind, candidate.x, candidate.y);
+          if (state.dragToggled.has(key)) {
+            continue;
+          }
+          state.dragToggled.add(key);
+          toggleWall(candidate.kind, candidate.x, candidate.y);
+        }
+      }
+
+      function placeMinotaur(event) {
+        if (!state.editing) {
+          return;
+        }
+        const rect = elements.canvas.getBoundingClientRect();
+        const px = clamp(event.clientX - rect.left, 0, state.canvasCssWidth - 1);
+        const py = clamp(event.clientY - rect.top, 0, state.canvasCssHeight - 1);
+        const { w, h } = getCellMetrics();
+        state.minotaur = {
+          x: clamp(Math.floor(px / w) + 1, 1, state.dimension),
+          y: clamp(Math.floor(py / h) + 1, 1, state.dimension)
+        };
+        clearPath();
+        updateStatus(`Minotaur moved to cell ${state.minotaur.x},${state.minotaur.y}.`);
+        draw();
+      }
+
+      elements.generateBtn.addEventListener("click", generateMaze);
+      elements.solveBtn.addEventListener("click", toggleSolve);
+      elements.stopBtn.addEventListener("click", () => finishSolve(true));
+      elements.moveMinotaurBtn.addEventListener("click", () => {
+        chooseRandomMinotaur();
+        clearPath();
+        updateStatus("Minotaur moved to a random cell.");
+        draw();
+      });
+      elements.emptyBtn.addEventListener("click", emptyMaze);
+      elements.loadBundledBtn.addEventListener("click", async () => {
+        try {
+          await loadBundledMaze();
+        } catch (error) {
+          updateStatus(`Could not load bundled lab.dat: ${error.message}`);
+        }
+      });
+      elements.loadBtn.addEventListener("click", () => elements.fileInput.click());
+      elements.saveBtn.addEventListener("click", saveMaze);
+
+      elements.fileInput.addEventListener("change", async (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) {
+          return;
+        }
+        try {
+          const buffer = await file.arrayBuffer();
+          importFromBuffer(buffer, file.name);
+        } catch (error) {
+          updateStatus(`Failed to open ${file.name}: ${error.message}`);
+        } finally {
+          elements.fileInput.value = "";
+        }
+      });
+
+      elements.speedInput.addEventListener("input", () => {
+        state.speedMs = Number(elements.speedInput.value);
+        if (state.solveState === "running") {
+          resumeSolve();
+        }
+      });
+
+      elements.dimensionInput.addEventListener("change", () => {
+        elements.dimensionInput.value = String(clamp(Number(elements.dimensionInput.value) || state.dimension, 4, MAX_SIZE));
+      });
+
+      elements.wallColorInput.addEventListener("input", (event) => setColorFromInput("zdi", event.target.value));
+      elements.forwardColorInput.addEventListener("input", (event) => setColorFromInput("tam", event.target.value));
+      elements.backtrackColorInput.addEventListener("input", (event) => setColorFromInput("zpet", event.target.value));
+      elements.minotaurOutlineInput.addEventListener("input", (event) => setColorFromInput("mino1", event.target.value));
+      elements.minotaurFillInput.addEventListener("input", (event) => setColorFromInput("mino2", event.target.value));
+
+      elements.canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+      elements.canvas.addEventListener("mousedown", (event) => {
+        state.dragToggled.clear();
+        state.dragButton = event.button;
+        if (event.button === 2) {
+          placeMinotaur(event);
+          return;
+        }
+        if (event.button === 0) {
+          handleWallGesture(event, 4);
+        }
+      });
+
+      elements.canvas.addEventListener("mousemove", (event) => {
+        if (state.dragButton === 0 && (event.buttons & 1) === 1) {
+          handleWallGesture(event, Math.max(8, Math.round(getCellMetrics().h)));
+        }
+      });
+
+      window.addEventListener("mouseup", () => {
+        state.dragButton = null;
+        state.dragToggled.clear();
+      });
+
+      window.addEventListener("resize", resizeCanvas);
+
+      async function init() {
+        syncInputsFromState();
+        resizeCanvas();
+        try {
+          await loadBundledMaze();
+        } catch (_error) {
+          generateMaze();
+        }
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
