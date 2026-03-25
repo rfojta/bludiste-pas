@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bludiste Canvas SPA</title>
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <main class="page">
+    <aside class="panel">
+      <div class="row">
+        <h1>Bludiste</h1>
+        <p>Canvas single-page port of the Delphi maze program. It keeps the same maze generation, editable walls, randomized depth-first Minotaur search, and compatible <code>.dat</code> file format.</p>
+      </div>
+
+      <section class="section">
+        <h2>Maze</h2>
+        <div class="row columns-2">
+          <label>
+            Dimension
+            <input id="dimensionInput" type="number" min="4" max="500" value="20">
+          </label>
+          <label>
+            Step Delay
+            <input id="speedInput" type="range" min="10" max="250" step="5" value="30">
+          </label>
+        </div>
+        <div class="row columns-2">
+          <button id="generateBtn">Generate</button>
+          <button id="solveBtn">Solve</button>
+        </div>
+        <div class="row columns-3">
+          <button id="stopBtn" class="secondary" disabled>Stop</button>
+          <button id="moveMinotaurBtn" class="secondary">Move Minotaur</button>
+          <button id="emptyBtn" class="secondary">Empty Maze</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Colors</h2>
+        <div class="row columns-2">
+          <label>
+            Walls
+            <input id="wallColorInput" type="color" value="#ff0000">
+          </label>
+          <label>
+            Forward Path
+            <input id="forwardColorInput" type="color" value="#0000ff">
+          </label>
+        </div>
+        <div class="row columns-2">
+          <label>
+            Backtrack Path
+            <input id="backtrackColorInput" type="color" value="#008000">
+          </label>
+          <label>
+            Minotaur Outline
+            <input id="minotaurOutlineInput" type="color" value="#800080">
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Minotaur Fill
+            <input id="minotaurFillInput" type="color" value="#800080">
+          </label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Files</h2>
+        <div class="row columns-3">
+          <button id="loadBundledBtn" class="secondary">Load lab.dat</button>
+          <button id="loadBtn" class="secondary">Open .dat</button>
+          <button id="saveBtn" class="secondary">Save .dat</button>
+        </div>
+        <input id="fileInput" class="hidden" type="file" accept=".dat,application/octet-stream">
+      </section>
+    </aside>
+
+    <section class="board">
+      <div class="board-shell">
+        <canvas id="mazeCanvas"></canvas>
+      </div>
+      <div id="statusText" class="status">Left click or drag near a wall to toggle it. Right click a cell to place the Minotaur. Search always starts from cell 1,1.</div>
+      <div class="legend">
+        <span><i class="swatch" id="wallSwatch"></i>Walls</span>
+        <span><i class="swatch" id="forwardSwatch"></i>Forward steps</span>
+        <span><i class="swatch" id="backtrackSwatch"></i>Backtracking</span>
+        <span><i class="swatch" id="minotaurSwatch"></i>Minotaur</span>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
